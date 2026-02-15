@@ -861,7 +861,7 @@ static const struct i2c_algorithm xiic_algorithm = {
 
 static struct i2c_adapter xiic_adapter = {
 	.owner = THIS_MODULE,
-	.class = I2C_CLASS_HWMON | I2C_CLASS_SPD,
+	.class = I2C_CLASS_HWMON,
 	.algo = &xiic_algorithm,
 };
 
@@ -1030,14 +1030,14 @@ failed:
 	return ret;
 }
 
-static int xiic_remove(struct platform_device *pdev)
+static void xiic_remove(struct platform_device *pdev)
 {
 	struct xiic_i2c *i2c;
 
 	i2c = platform_get_drvdata(pdev);
 	if (!i2c) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return 0;
+		return;
 	}
 
 	if (i2c->lm63) {
@@ -1051,7 +1051,7 @@ static int xiic_remove(struct platform_device *pdev)
 	devm_kfree(&pdev->dev, i2c);
 	platform_set_drvdata(pdev, NULL);
 
-	return 0;
+	return;
 }
 
 struct platform_device_id xiic_id_table[] = {

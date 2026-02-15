@@ -321,9 +321,9 @@ static int bridge_mmap(struct file *file, struct vm_area_struct *vma)
 	 * and prevent the pages from being swapped out
 	 */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
 	/* make MMIO accessible to user space */
@@ -829,7 +829,7 @@ static bool xclmgmt_is_same_domain(struct xclmgmt_dev *lro,
 		return false;
 	}
 
-	crc_chk = crc32c_le(~0, (void *)mb_conn->kaddr, PAGE_SIZE);
+	crc_chk = crc32c(~0, (void *)mb_conn->kaddr, PAGE_SIZE);
 	if (crc_chk != mb_conn->crc32) {
 		mgmt_info(lro, "crc32  : %x, %x\n",  mb_conn->crc32, crc_chk);
 		mgmt_info(lro, "failed to get the same CRC\n");
@@ -1640,7 +1640,7 @@ static int __init xclmgmt_init(void)
 	int res, i;
 
 	pr_info(DRV_NAME " init()\n");
-	xrt_class = class_create(THIS_MODULE, "xrt_mgmt");
+	xrt_class = class_create("xrt_mgmt");
 	if (IS_ERR(xrt_class))
 		return PTR_ERR(xrt_class);
 

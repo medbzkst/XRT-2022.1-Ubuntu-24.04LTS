@@ -463,14 +463,14 @@ failed:
 }
 
 
-static int xlnx_dna_remove(struct platform_device *pdev)
+static void xlnx_dna_remove(struct platform_device *pdev)
 {
 	struct xocl_xlnx_dna	*xlnx_dna;
 
 	xlnx_dna = platform_get_drvdata(pdev);
 	if (!xlnx_dna) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	mgmt_sysfs_destroy_xlnx_dna(pdev);
@@ -481,7 +481,7 @@ static int xlnx_dna_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, xlnx_dna);
 
-	return 0;
+
 }
 
 struct xocl_drv_private dna_priv = {

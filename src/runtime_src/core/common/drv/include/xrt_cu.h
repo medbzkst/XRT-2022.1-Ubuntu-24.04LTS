@@ -14,6 +14,7 @@
 #define _XRT_CU_H
 
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 #include <linux/device.h>
 #include <linux/slab.h>
 #include <linux/semaphore.h>

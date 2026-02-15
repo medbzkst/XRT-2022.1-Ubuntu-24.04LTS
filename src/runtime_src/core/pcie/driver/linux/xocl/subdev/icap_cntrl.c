@@ -166,7 +166,7 @@ static int icap_cntrl_sysfs_create(struct icap_cntrl *ic)
 	return 0;
 }
 
-static int icap_cntrl_remove(struct platform_device *pdev)
+static void icap_cntrl_remove(struct platform_device *pdev)
 {
 	struct icap_cntrl *icap_cntrl;
 	void *hdl;
@@ -174,7 +174,7 @@ static int icap_cntrl_remove(struct platform_device *pdev)
 	icap_cntrl = platform_get_drvdata(pdev);
 	if (!icap_cntrl) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	xocl_drvinst_release(icap_cntrl, &hdl);
 
@@ -187,7 +187,7 @@ static int icap_cntrl_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int icap_cntrl_probe(struct platform_device *pdev)

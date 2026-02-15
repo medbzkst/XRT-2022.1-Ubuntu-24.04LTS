@@ -28,6 +28,14 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_TIMER_FROM(var, timer, field) timer_container_of(var, timer, field)
+#define XOCL_DEL_TIMER timer_delete
+#else
+#define XOCL_TIMER_FROM(var, timer, field) from_timer(var, timer, field)
+#define XOCL_DEL_TIMER del_timer
+#endif
+
 #include "qdma_compat.h"
 #include "xdev.h"
 #include "qdma_device.h"
@@ -288,7 +296,7 @@ static int mbox_rcv_one_msg(struct qdma_mbox *mbox)
 
 static inline void mbox_timer_stop(struct qdma_mbox *mbox)
 {
-	del_timer(&mbox->timer);
+	XOCL_DEL_TIMER(&mbox->timer);
 }
 
 static inline void mbox_timer_start(struct qdma_mbox *mbox)
@@ -414,7 +422,7 @@ static void mbox_timer_handler(unsigned long arg)
 #endif
 {
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-	struct qdma_mbox *mbox = from_timer(mbox, t, timer);
+	struct qdma_mbox *mbox = XOCL_TIMER_FROM(mbox, t, timer);
 #else
 	struct qdma_mbox *mbox = (struct qdma_mbox *)arg;
 #endif

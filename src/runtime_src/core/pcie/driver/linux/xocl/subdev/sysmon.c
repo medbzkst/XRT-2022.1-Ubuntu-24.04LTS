@@ -363,14 +363,14 @@ failed:
 }
 
 
-static int sysmon_remove(struct platform_device *pdev)
+static void sysmon_remove(struct platform_device *pdev)
 {
 	struct xocl_sysmon	*sysmon;
 
 	sysmon = platform_get_drvdata(pdev);
 	if (!sysmon) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	mgmt_sysfs_destroy_sysmon(pdev);
@@ -381,7 +381,7 @@ static int sysmon_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, sysmon);
 
-	return 0;
+	return;
 }
 
 struct xocl_drv_private sysmon_priv = {

@@ -322,7 +322,7 @@ failed:
 	return ret;
 }
 
-static int mgmt_msix_remove(struct platform_device *pdev)
+static void mgmt_msix_remove(struct platform_device *pdev)
 {
 	xdev_handle_t xdev;
 	struct xocl_mgmt_msix *mgmt_msix;
@@ -332,7 +332,7 @@ static int mgmt_msix_remove(struct platform_device *pdev)
 	mgmt_msix = platform_get_drvdata(pdev);
 	if (!mgmt_msix) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xdev = xocl_get_xdev(pdev);
@@ -352,7 +352,7 @@ static int mgmt_msix_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, mgmt_msix);
 
-	return 0;
+	return;
 }
 
 struct xocl_drv_private mgmt_msix_priv = {

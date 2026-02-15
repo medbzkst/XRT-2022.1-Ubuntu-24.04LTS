@@ -267,14 +267,14 @@ static struct xocl_clock_counter_funcs clock_counter_ops = {
 	.get_freq_counter = clock_counter_get_freq,
 };
 
-static int clock_counter_remove(struct platform_device *pdev)
+static void clock_counter_remove(struct platform_device *pdev)
 {
 	struct clock_counter *clock_c;
 
 	clock_c = platform_get_drvdata(pdev);
 	if (!clock_c) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &clock_counter_attr_group);
@@ -285,7 +285,7 @@ static int clock_counter_remove(struct platform_device *pdev)
 	CLOCK_C_INFO(clock_c, "successfully removed Clock Counter subdev");
 	devm_kfree(&pdev->dev, clock_c);
 
-	return 0;
+
 }
 
 static int clock_counter_probe(struct platform_device *pdev)

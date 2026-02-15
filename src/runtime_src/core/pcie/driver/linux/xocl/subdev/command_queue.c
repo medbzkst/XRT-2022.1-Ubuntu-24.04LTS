@@ -17,6 +17,13 @@
 
 #include "../xocl_drv.h"
 #include "xrt_ert.h"
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 #define	ERT_MAX_SLOTS		128
 #define	CTRL_SLOT		0
@@ -72,7 +79,7 @@ struct command_queue {
 
 static ssize_t
 ert_cq_debug(struct file *filp, struct kobject *kobj,
-	    struct bin_attribute *attr, char *buf,
+	    XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf,
 	    loff_t offset, size_t count)
 {
 	struct command_queue *cmd_queue;
@@ -109,7 +116,11 @@ static struct bin_attribute cq_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static const struct bin_attribute *cmd_queue_bin_attrs[] = {
+#else
 static struct bin_attribute *cmd_queue_bin_attrs[] = {
+#endif
 	&cq_attr,
 	NULL,
 };
@@ -626,7 +637,7 @@ static struct xrt_ert_queue_funcs command_queue_func = {
 	.intc_config = command_queue_intc_config,
 };
 
-static int command_queue_remove(struct platform_device *pdev)
+static void command_queue_remove(struct platform_device *pdev)
 {
 	struct xrt_ert *command_queue;
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
@@ -635,7 +646,7 @@ static int command_queue_remove(struct platform_device *pdev)
 	command_queue = platform_get_drvdata(pdev);
 	if (!command_queue) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_subdev_destroy_by_id(xdev, XOCL_SUBDEV_ERT_USER);
@@ -648,7 +659,7 @@ static int command_queue_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int command_queue_probe(struct platform_device *pdev)

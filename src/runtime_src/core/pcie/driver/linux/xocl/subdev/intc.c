@@ -652,7 +652,7 @@ err:
 	return ret;
 }
 
-static int intc_remove(struct platform_device *pdev)
+static void intc_remove(struct platform_device *pdev)
 {
 	struct xocl_intc *intc = platform_get_drvdata(pdev);
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
@@ -669,7 +669,7 @@ static int intc_remove(struct platform_device *pdev)
 	xocl_drvinst_release(intc, &hdl);
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
-	return 0;
+	return;
 }
 
 static struct xocl_intc_funcs intc_ops = {

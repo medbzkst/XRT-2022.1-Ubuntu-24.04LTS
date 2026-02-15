@@ -377,9 +377,9 @@ static int bridge_mmap(struct file *file, struct vm_area_struct *vma)
 	/* prevent touching the pages (byte access) for swap-in,
 	   and prevent the pages from being swapped out */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 	/* make MMIO accessible to user space */
 	rc = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT,
@@ -844,7 +844,7 @@ static int __init awsmgmt_init(void)
 	int res;
 
 	printk(KERN_INFO DRV_NAME " init()\n");
-	awsmgmt_class = class_create(THIS_MODULE, DRV_NAME);
+	awsmgmt_class = class_create(DRV_NAME);
 	if (IS_ERR(awsmgmt_class))
 		return PTR_ERR(awsmgmt_class);
 	res = alloc_chrdev_region(&awsmgmt_devnode, AWSMGMT_MINOR_BASE,

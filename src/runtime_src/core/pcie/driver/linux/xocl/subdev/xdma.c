@@ -294,7 +294,7 @@ static irqreturn_t xdma_isr(int irq, void *arg)
 		ret = irq_entry->handler(irq, irq_entry->arg);
 
 	if (!IS_ERR_OR_NULL(irq_entry->event_ctx)) {
-		eventfd_signal(irq_entry->event_ctx, 1);
+		eventfd_signal(irq_entry->event_ctx);
 	}
 
 	return ret;
@@ -534,7 +534,7 @@ failed:
 	return ret;
 }
 
-static int xdma_remove(struct platform_device *pdev)
+static void xdma_remove(struct platform_device *pdev)
 {
 	struct xocl_xdma *xdma = platform_get_drvdata(pdev);
 	xdev_handle_t xdev;
@@ -543,7 +543,7 @@ static int xdma_remove(struct platform_device *pdev)
 
 	if (!xdma) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xdev = xocl_get_xdev(pdev);
@@ -578,7 +578,7 @@ static int xdma_remove(struct platform_device *pdev)
 
 	devm_kfree(&pdev->dev, xdma);
 
-	return 0;
+
 }
 
 struct xocl_drv_private xdma_priv = {

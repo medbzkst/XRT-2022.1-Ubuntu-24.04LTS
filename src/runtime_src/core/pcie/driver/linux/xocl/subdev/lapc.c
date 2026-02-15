@@ -93,7 +93,7 @@ static struct attribute_group lapc_attr_group = {
 			   .attrs = lapc_attrs,
 };
 
-static int lapc_remove(struct platform_device *pdev)
+static void lapc_remove(struct platform_device *pdev)
 {
 	struct xocl_lapc *lapc;
 	void *hdl;
@@ -101,7 +101,7 @@ static int lapc_remove(struct platform_device *pdev)
 	lapc = platform_get_drvdata(pdev);
 	if (!lapc) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &lapc_attr_group);
@@ -115,7 +115,7 @@ static int lapc_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int lapc_probe(struct platform_device *pdev)
@@ -244,9 +244,9 @@ static int lapc_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * and prevent the pages from being swapped out
 	 */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
 	/* make MMIO accessible to user space */

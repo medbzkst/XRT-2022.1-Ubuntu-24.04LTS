@@ -1397,14 +1397,14 @@ static void sysfs_destroy_flash(struct xocl_flash *flash)
 		sysfs_remove_group(&flash->pdev->dev.kobj, &flash_attr_group);
 }
 
-static int flash_remove(struct platform_device *pdev)
+static void flash_remove(struct platform_device *pdev)
 {
 	struct xocl_flash *flash;
 	void *hdl;
 
 	flash = platform_get_drvdata(pdev);
 	if (!flash)
-		return -EINVAL;
+		return;
 
 	xocl_drvinst_release(flash, &hdl);
 	platform_set_drvdata(pdev, NULL);
@@ -1419,7 +1419,7 @@ static int flash_remove(struct platform_device *pdev)
 
 	mutex_destroy(&flash->io_lock);
 	xocl_drvinst_free(hdl);
-	return 0;
+
 }
 
 static int flash_probe(struct platform_device *pdev)

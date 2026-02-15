@@ -19,6 +19,7 @@
 #include "../xocl_drv.h"
 #include "../xocl_drm.h"
 #include <linux/iommu.h>
+#include <linux/dma-map-ops.h>
 
 int p2p_max_bar_size = 128; /* GB */
 module_param(p2p_max_bar_size, int, (S_IRUGO|S_IWUSR));
@@ -510,7 +511,7 @@ static void p2p_read_addr_mgmtpf(struct p2p *p2p)
 	mb_req->req = XCL_MAILBOX_REQ_READ_P2P_BAR_ADDR;
 	mb_p2p = (struct xcl_mailbox_p2p_bar_addr *)mb_req->data;
 
-	if (!iommu_present(&pci_bus_type)){
+	if (!iommu_get_domain_for_dev(&XDEV(xdev)->pdev->dev)) {
 		mb_p2p->p2p_bar_len = pci_resource_len(pcidev, p2p->p2p_bar_idx);
 		mb_p2p->p2p_bar_addr = pci_resource_start(pcidev,
 				p2p->p2p_bar_idx);
@@ -1467,7 +1468,7 @@ static int p2p_sysfs_create(struct p2p *p2p)
 	return 0;
 }
 
-static int p2p_remove(struct platform_device *pdev)
+static void p2p_remove(struct platform_device *pdev)
 {
 	struct p2p *p2p;
 	struct pci_dev *pcidev;
@@ -1476,7 +1477,7 @@ static int p2p_remove(struct platform_device *pdev)
 	p2p = platform_get_drvdata(pdev);
 	if (!p2p) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	xocl_drvinst_release(p2p, &hdl);
 
@@ -1497,7 +1498,7 @@ static int p2p_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static int p2p_probe(struct platform_device *pdev)

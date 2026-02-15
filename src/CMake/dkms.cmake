@@ -233,7 +233,6 @@ SET (XRT_DKMS_DRIVER_SRCS
   xocl/subdev/accel_deadlock_detector.c
   xocl/subdev/memory_hbm.c
   xocl/subdev/ddr_srsr.c
-  xocl/subdev/ulite.c
   xocl/subdev/calib_storage.c
   xocl/subdev/address_translator.c
   xocl/subdev/cu.c
@@ -253,6 +252,7 @@ SET (XRT_DKMS_DRIVER_SRCS
   xocl/subdev/hwmon_sdm.c
   xocl/subdev/ert_ctrl.c
   xocl/subdev/cu_xgq.c
+  xocl/subdev/ulite_stub.c
   xocl/Makefile
   )
 

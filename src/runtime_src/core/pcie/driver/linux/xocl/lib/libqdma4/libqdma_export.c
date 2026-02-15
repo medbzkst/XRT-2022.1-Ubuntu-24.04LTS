@@ -1,3 +1,5 @@
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
 /*
  * This file is part of the Xilinx DMA IP Core driver for Linux
  *
@@ -2243,7 +2245,7 @@ void sgl_unmap(struct pci_dev *pdev, struct qdma_sw_sg *sg, unsigned int sgcnt,
 		if (!sg->pg)
 			break;
 		if (sg->dma_addr) {
-			pci_unmap_page(pdev, sg->dma_addr - sg->offset,
+			dma_unmap_page(&pdev->dev, sg->dma_addr - sg->offset,
 							PAGE_SIZE, dir);
 			sg->dma_addr = 0UL;
 		}
@@ -2275,8 +2277,8 @@ int sgl_map(struct pci_dev *pdev, struct qdma_sw_sg *sgl, unsigned int sgcnt,
 	 */
 	for (i = 0; i < sgcnt; i++, sg++) {
 		/* !! TODO  page size !! */
-		sg->dma_addr = pci_map_page(pdev, sg->pg, 0, PAGE_SIZE, dir);
-		if (unlikely(pci_dma_mapping_error(pdev, sg->dma_addr))) {
+		sg->dma_addr = dma_map_page(&pdev->dev, sg->pg, 0, PAGE_SIZE, dir);
+		if (unlikely(dma_mapping_error(&pdev->dev, sg->dma_addr))) {
 			pr_err("map sgl failed, sg %d, %u.\n", i, sg->len);
 			if (i)
 				sgl_unmap(pdev, sgl, i, dir);
@@ -2756,8 +2758,15 @@ MODULE_AUTHOR("Xilinx, Inc.");
 MODULE_DESCRIPTION(DRV_MODULE_DESC);
 MODULE_VERSION(DRV_MODULE_VERSION);
 MODULE_LICENSE("Dual BSD/GPL");
+MODULE_IMPORT_NS("DMA_BUF");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
-MODULE_IMPORT_NS(DMA_BUF);
+#ifdef MODULE_IMPORT_NS
+/* Some kernels don't define the DMA_BUF import namespace token */
+#ifdef DMA_BUF
+/* removed old MODULE_IMPORT_NS(DMA_BUF) */
+#endif
+#endif
+
 #endif
 
 /*****************************************************************************/

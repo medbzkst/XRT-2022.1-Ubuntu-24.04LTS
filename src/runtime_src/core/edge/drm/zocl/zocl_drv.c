@@ -648,7 +648,7 @@ zocl_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * and set the vm_pgoff (used as a fake buffer offset by DRM)
 	 * to 0 as we want to map the whole buffer.
 	 */
-	vma->vm_flags &= ~VM_PFNMAP;
+	vm_flags_clear(vma, VM_PFNMAP);
 	vma->vm_pgoff = 0;
 
 	gem_obj = vma->vm_private_data;
@@ -731,8 +731,8 @@ static int zocl_mmap(struct file *filp, struct vm_area_struct *vma)
 		rc = zocl_iommu_map_bo(dev, bo);
 		if (rc)
 			return rc;
-		vma->vm_flags &= ~VM_PFNMAP;
-		vma->vm_flags |= VM_MIXEDMAP;
+		vm_flags_clear(vma, VM_PFNMAP);
+		vm_flags_set(vma, VM_MIXEDMAP);
 		/* Reset the fake offset used to identify the BO */
 		vma->vm_pgoff = 0;
 		return 0;
@@ -755,8 +755,8 @@ static int zocl_mmap(struct file *filp, struct vm_area_struct *vma)
 		return -EINVAL;
 
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-	vma->vm_flags |= VM_IO;
-	vma->vm_flags |= VM_RESERVED;
+	vm_flags_set(vma, VM_IO);
+	vm_flags_set(vma, VM_RESERVED);
 
 	vma->vm_ops = &reg_physical_vm_ops;
 	rc = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,

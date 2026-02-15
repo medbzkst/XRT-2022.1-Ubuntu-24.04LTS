@@ -19,8 +19,9 @@
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3, 0, 0)
 #include <drm/drm_backport.h>
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) || \
-	defined(RHEL_RELEASE_VERSION)
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) || \
+	defined(RHEL_RELEASE_VERSION)) && \
+	(LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0))
 #include <linux/pfn_t.h>
 #endif
 #include <linux/pagemap.h>
@@ -30,6 +31,18 @@
 #include "version.h"
 #include "../lib/libxdma_api.h"
 #include "common.h"
+
+#include <linux/mm.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_PFN_TYPE unsigned long
+#define XOCL_PFN_MAP(page) page_to_pfn(page)
+#define XOCL_PFN_DEV(page) page_to_pfn(page)
+#else
+#define XOCL_PFN_TYPE pfn_t
+#define XOCL_PFN_MAP(page) phys_to_pfn_t(page_to_phys(page), PFN_MAP)
+#define XOCL_PFN_DEV(page) phys_to_pfn_t(page_to_phys(page), PFN_MAP|PFN_DEV)
+#endif
 
 #ifndef SZ_4G
 #define SZ_4G	_AC(0x100000000, ULL)
@@ -81,13 +94,13 @@ static int xocl_bo_mmap(struct file *filp, struct vm_area_struct *vma)
 	/* Clear VM_PFNMAP flag set by drm_gem_mmap()
 	 * we have "struct page" for all backing pages for bo
 	 */
-	vma->vm_flags &= ~VM_PFNMAP;
+	vm_flags_clear(vma, VM_PFNMAP);
 	/* Clear VM_IO flag set by drm_gem_mmap()
 	 * it prevents gdb from accessing mapped buffers
 	 */
-	vma->vm_flags &= ~VM_IO;
-	vma->vm_flags |= VM_MIXEDMAP;
-	vma->vm_flags |= mm->def_flags;
+	vm_flags_clear(vma, VM_IO);
+	vm_flags_set(vma, VM_MIXEDMAP);
+	vm_flags_set(vma, mm->def_flags);
 	vma->vm_pgoff = 0;
 
 	/* Override pgprot_writecombine() mapping setup by
@@ -144,8 +157,8 @@ static int xocl_native_mmap(struct file *filp, struct vm_area_struct *vma)
 	}
 
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-	vma->vm_flags |= VM_IO;
-	vma->vm_flags |= VM_RESERVED;
+	vm_flags_set(vma, VM_IO);
+	vm_flags_set(vma, VM_RESERVED);
 
 	ret = io_remap_pfn_range(vma, vma->vm_start,
 				 res_start >> PAGE_SHIFT,
@@ -276,8 +289,8 @@ int xocl_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	 */
 	if (xocl_bo_p2p(xobj) || xocl_bo_import(xobj)) {
 #ifdef RHEL_RELEASE_VERSION
-		pfn_t pfn;
-		pfn = phys_to_pfn_t(page_to_phys(xobj->pages[page_offset]), PFN_MAP|PFN_DEV);
+		XOCL_PFN_TYPE pfn;
+		pfn = XOCL_PFN_DEV(xobj->pages[page_offset]);
 #if RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 2)
 		ret = vm_insert_mixed(vma, vmf_address, pfn);
 #else
@@ -291,8 +304,8 @@ int xocl_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
  *  Instead, we call vm_insert_mixed.
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0) || defined(RHEL_RELEASE_VERSION)
-		pfn_t pfn;
-		pfn = phys_to_pfn_t(page_to_phys(xobj->pages[page_offset]), PFN_MAP);
+		XOCL_PFN_TYPE pfn;
+		pfn = XOCL_PFN_MAP(xobj->pages[page_offset]);
 #if defined(RHEL_RELEASE_VERSION)
 #if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 2)
 		ret = vmf_insert_mixed(vma, vmf_address, pfn);
@@ -392,45 +405,45 @@ static uint xocl_poll(struct file *filp, poll_table *wait)
 
 static const struct drm_ioctl_desc xocl_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(XOCL_CREATE_BO, xocl_create_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_USERPTR_BO, xocl_userptr_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_MAP_BO, xocl_map_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_SYNC_BO, xocl_sync_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_INFO_BO, xocl_info_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_PWRITE_BO, xocl_pwrite_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_PREAD_BO, xocl_pread_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_CTX, xocl_ctx_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_INFO, xocl_info_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_READ_AXLF, xocl_read_axlf_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_PWRITE_UNMGD, xocl_pwrite_unmgd_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_PREAD_UNMGD, xocl_pread_unmgd_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_USAGE_STAT, xocl_usage_stat_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_USER_INTR, xocl_user_intr_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_EXECBUF, xocl_execbuf_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_COPY_BO, xocl_copy_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_HOT_RESET, xocl_hot_reset_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_RECLOCK, xocl_reclock_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_ALLOC_CMA, xocl_alloc_cma_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_FREE_CMA, xocl_free_cma_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 
 /* LINUX KERNEL-SPACE IOCTLS - The following entries are meant to be
  * accessible only from Linux Kernel and need be grouped to at the end
@@ -440,13 +453,13 @@ static const struct drm_ioctl_desc xocl_ioctls[] = {
  **/
 #define NUM_KERNEL_IOCTLS 4
 	DRM_IOCTL_DEF_DRV(XOCL_KINFO_BO, xocl_kinfo_bo_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_MAP_KERN_MEM, xocl_map_kern_mem_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_EXECBUF_CB, xocl_execbuf_callback_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(XOCL_SYNC_BO_CB, xocl_sync_bo_callback_ioctl,
-			  DRM_AUTH|DRM_UNLOCKED|DRM_RENDER_ALLOW),
+			  DRM_AUTH|DRM_RENDER_ALLOW),
 };
 
 static long xocl_drm_ioctl(struct file *filp,
@@ -457,6 +470,9 @@ static long xocl_drm_ioctl(struct file *filp,
 
 static const struct file_operations xocl_driver_fops = {
 	.owner		= THIS_MODULE,
+#ifdef FOP_UNSIGNED_OFFSET
+	.fop_flags	= FOP_UNSIGNED_OFFSET,
+#endif
 	.open		= drm_open,
 	.mmap		= xocl_mmap,
 	.poll		= xocl_poll,
@@ -508,11 +524,10 @@ static struct drm_driver mm_drm_driver = {
 #endif
 
 	.ioctls				= xocl_ioctls,
-	.num_ioctls			= (ARRAY_SIZE(xocl_ioctls)-NUM_KERNEL_IOCTLS),
+	.num_ioctls			= ARRAY_SIZE(xocl_ioctls),
 	.fops				= &xocl_driver_fops,
 
 	.gem_prime_import_sg_table	= xocl_gem_prime_import_sg_table,
-	.gem_prime_mmap			= xocl_gem_prime_mmap,
 
 	.prime_handle_to_fd		= drm_gem_prime_handle_to_fd,
 	.prime_fd_to_handle		= drm_gem_prime_fd_to_handle,
@@ -522,7 +537,6 @@ static struct drm_driver mm_drm_driver = {
 #endif
 	.name				= XOCL_MODULE_NAME,
 	.desc				= XOCL_DRIVER_DESC,
-	.date				= driver_date,
 };
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0) || defined(RHEL_8_5_GE)
@@ -559,7 +573,10 @@ void *xocl_drm_init(xdev_handle_t xdev_hdl)
 		goto failed;
 	}
 
-	drm_p = xocl_drvinst_alloc(&XDEV(xdev_hdl)->pdev->dev, sizeof(*drm_p));
+	    /* Ensure per-device features are initialized for newer DRM core */
+    ddev->driver_features = ddev->driver->driver_features;
+
+drm_p = xocl_drvinst_alloc(&XDEV(xdev_hdl)->pdev->dev, sizeof(*drm_p));
 	if (!drm_p) {
 		xocl_xdev_err(xdev_hdl, "alloc drm inst failed");
 		ret = -ENOMEM;

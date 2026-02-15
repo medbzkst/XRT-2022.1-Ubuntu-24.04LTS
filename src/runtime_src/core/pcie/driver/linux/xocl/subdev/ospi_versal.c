@@ -403,7 +403,7 @@ static int xfer_versal_close(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int xfer_versal_remove(struct platform_device *pdev)
+static void xfer_versal_remove(struct platform_device *pdev)
 {
 	struct xfer_versal *xv = platform_get_drvdata(pdev);
 	void *hdl;
@@ -411,7 +411,7 @@ static int xfer_versal_remove(struct platform_device *pdev)
 
 	if (!xv) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_drvinst_release(xv, &hdl);
@@ -422,7 +422,7 @@ static int xfer_versal_remove(struct platform_device *pdev)
 	xocl_drvinst_free(hdl);
 
 	XV_INFO(xv, "return: %d", ret);
-	return ret;
+	return;
 }
 
 static int xfer_versal_probe(struct platform_device *pdev)

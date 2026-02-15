@@ -148,14 +148,14 @@ static struct xocl_axigate_funcs axigate_ops = {
 	.get_status = axigate_status,
 };
 
-static int axigate_remove(struct platform_device *pdev)
+static void axigate_remove(struct platform_device *pdev)
 {
 	struct axi_gate *gate;
 
 	gate = platform_get_drvdata(pdev);
 	if (!gate) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	if (gate->sysfs_created)
@@ -167,7 +167,7 @@ static int axigate_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, gate);
 
-	return 0;
+
 }
 
 static int axigate_probe(struct platform_device *pdev)

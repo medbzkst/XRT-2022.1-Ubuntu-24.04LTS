@@ -102,7 +102,7 @@ static int32_t gpio_cfg(struct platform_device *pdev, enum ert_gpio_cfg type)
 	mutex_unlock(&cfg_gpio->lock);
 	return ret;
 }
-static int config_gpio_remove(struct platform_device *pdev)
+static void config_gpio_remove(struct platform_device *pdev)
 {
 	struct config_gpio *config_gpio;
 	void *hdl;
@@ -110,7 +110,7 @@ static int config_gpio_remove(struct platform_device *pdev)
 	config_gpio = platform_get_drvdata(pdev);
 	if (!config_gpio) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_drvinst_release(config_gpio, &hdl);
@@ -119,7 +119,7 @@ static int config_gpio_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int config_gpio_probe(struct platform_device *pdev)

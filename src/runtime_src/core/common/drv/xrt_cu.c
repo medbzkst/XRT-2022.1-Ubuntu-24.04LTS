@@ -11,6 +11,16 @@
  */
 
 #include <linux/delay.h>
+#include <linux/version.h>
+#include <linux/timer.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_TIMER_FROM(var, timer, field) timer_container_of(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC timer_delete_sync
+#else
+#define XOCL_TIMER_FROM(var, timer, field) from_timer(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC del_timer_sync
+#endif
 #include "kds_client.h"
 #include "xrt_cu.h"
 
@@ -77,7 +87,7 @@ static void cu_timer(unsigned long data)
 #else
 static void cu_timer(struct timer_list *t)
 {
-	struct xrt_cu *xcu = from_timer(xcu, t, timer);
+	struct xrt_cu *xcu = XOCL_TIMER_FROM(xcu, t, timer);
 #endif
 
 	xcu_dbg(xcu, "%s tick\n", xcu->info.iname);
@@ -536,7 +546,7 @@ int xrt_cu_intr_thread(void *data)
 		process_pq(xcu);
 	}
 	xrt_cu_disable_intr(xcu, CU_INTR_DONE | CU_INTR_READY);
-	del_timer_sync(&xcu->timer);
+	XOCL_DEL_TIMER_SYNC(&xcu->timer);
 
 	if (xcu->bad_state)
 		ret = -EBUSY;
@@ -835,7 +845,7 @@ void xrt_cu_fini(struct xrt_cu *xcu)
 	if (xcu->thread && !IS_ERR(xcu->thread))
 		(void) kthread_stop(xcu->thread);
 
-	del_timer_sync(&xcu->timer);
+	XOCL_DEL_TIMER_SYNC(&xcu->timer);
 	return;
 }
 

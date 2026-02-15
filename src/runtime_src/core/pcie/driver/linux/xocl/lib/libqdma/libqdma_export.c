@@ -2116,8 +2116,15 @@ MODULE_AUTHOR("Xilinx, Inc.");
 MODULE_DESCRIPTION(DRV_MODULE_DESC);
 MODULE_VERSION(DRV_MODULE_VERSION);
 MODULE_LICENSE("Dual BSD/GPL");
+MODULE_IMPORT_NS("DMA_BUF");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
-MODULE_IMPORT_NS(DMA_BUF);
+#ifdef MODULE_IMPORT_NS
+/* Some kernels don't define the DMA_BUF import namespace token */
+#ifdef DMA_BUF
+/* removed old MODULE_IMPORT_NS(DMA_BUF) */
+#endif
+#endif
+
 #endif
 
 /*****************************************************************************/

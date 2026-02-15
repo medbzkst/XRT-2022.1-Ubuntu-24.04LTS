@@ -32,6 +32,12 @@
 #include "mgmt-ioctl.h"
 #include "ps_kernel.h"
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
+
 #if defined(XOCL_UUID)
 static xuid_t uuid_null = NULL_UUID_LE;
 #endif
@@ -3383,7 +3389,7 @@ static struct attribute *icap_attrs[] = {
 
 /*- Debug IP_layout-- */
 static ssize_t icap_read_debug_ip_layout(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3426,7 +3432,7 @@ static struct bin_attribute debug_ip_layout_attr = {
 
 /* IP layout */
 static ssize_t icap_read_ip_layout(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3471,7 +3477,7 @@ static struct bin_attribute ip_layout_attr = {
 
 /* PS kernel */
 static ssize_t icap_read_ps_kernel(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3516,7 +3522,7 @@ static struct bin_attribute ps_kernel_attr = {
 
 /* -Connectivity-- */
 static ssize_t icap_read_connectivity(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3560,7 +3566,7 @@ static struct bin_attribute connectivity_attr = {
 
 /* -Group Connectivity-- */
 static ssize_t icap_read_group_connectivity(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3604,7 +3610,7 @@ static struct bin_attribute group_connectivity_attr = {
 
 /* -Mem_topology-- */
 static ssize_t icap_read_mem_topology(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap = (struct icap *)dev_get_drvdata(container_of(kobj, struct device, kobj));
 	u32 nread = 0;
@@ -3665,7 +3671,7 @@ static struct bin_attribute mem_topology_attr = {
 
 /* -Group_topology-- */
 static ssize_t icap_read_group_topology(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap = (struct icap *)dev_get_drvdata(container_of(kobj, struct device, kobj));
 	u32 nread = 0;
@@ -3728,7 +3734,7 @@ static struct bin_attribute group_topology_attr = {
 
 /* -Mem_topology-- */
 static ssize_t icap_read_clock_freqs(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t offset, size_t count)
 {
 	struct icap *icap;
 	u32 nread = 0;
@@ -3771,7 +3777,7 @@ static struct bin_attribute clock_freq_topology_attr = {
 };
 
 static ssize_t rp_bit_output(struct file *filp, struct kobject *kobj,
-		struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+		XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf, loff_t off, size_t count)
 {
 	struct icap *icap;
 	ssize_t ret = 0;
@@ -3804,7 +3810,11 @@ static struct bin_attribute rp_bit_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static const struct bin_attribute *icap_bin_attrs[] = {
+#else
 static struct bin_attribute *icap_bin_attrs[] = {
+#endif
 	&debug_ip_layout_attr,
 	&ip_layout_attr,
 	&ps_kernel_attr,
@@ -3822,7 +3832,7 @@ static struct attribute_group icap_attr_group = {
 	.bin_attrs = icap_bin_attrs,
 };
 
-static int icap_remove(struct platform_device *pdev)
+static void icap_remove(struct platform_device *pdev)
 {
 	struct icap *icap = platform_get_drvdata(pdev);
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
@@ -3842,7 +3852,7 @@ static int icap_remove(struct platform_device *pdev)
 	ICAP_INFO(icap, "cleaned up successfully");
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
-	return 0;
+
 }
 
 /*

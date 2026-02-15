@@ -20,6 +20,10 @@
 #include "xclfeatures.h"
 #include "flash_xrt_data.h"
 #include "../xocl_drv.h"
+#include <linux/kernel.h>
+#include <linux/version.h>
+#include <linux/string.h>
+
 
 #define	MAGIC_NUM	0x786e6c78
 struct feature_rom {
@@ -127,8 +131,13 @@ static struct attribute *rom_attrs[] = {
 	NULL,
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static ssize_t raw_show(struct file *filp, struct kobject *kobj,
+	const struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+#else
 static ssize_t raw_show(struct file *filp, struct kobject *kobj,
 	struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+#endif
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct feature_rom *rom = platform_get_drvdata(to_platform_device(dev));
@@ -154,7 +163,11 @@ static struct bin_attribute raw_attr = {
 	.size = 0
 };
 
-static struct bin_attribute  *rom_bin_attrs[] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static const struct bin_attribute *rom_bin_attrs[] = {
+#else
+static struct bin_attribute *rom_bin_attrs[] = {
+#endif
 	&raw_attr,
 	NULL,
 };
@@ -393,11 +406,11 @@ static int get_vendor_firmware_dir(u16 vendor, char *buf, size_t len) {
 	size_t ret;
 	switch (vendor) {
 		case XOCL_ARISTA_VEN:
-			ret = strlcpy(buf, "arista", len);
+			ret = scnprintf(buf, len, "%s", "arista");
 			break;
 		default:
 		case XOCL_XILINX_VEN:
-			ret = strlcpy(buf, "xilinx", len);
+			ret = scnprintf(buf, len, "%s", "xilinx");
 			break;
 	}
 	return (ret >= len) ? -E2BIG : 0;
@@ -867,7 +880,7 @@ failed:
 	return ret;
 }
 
-static int feature_rom_remove(struct platform_device *pdev)
+static void feature_rom_remove(struct platform_device *pdev)
 {
 	struct feature_rom *rom;
 
@@ -875,7 +888,7 @@ static int feature_rom_remove(struct platform_device *pdev)
 	rom = platform_get_drvdata(pdev);
 	if (!rom) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	if (rom->base)
 		iounmap(rom->base);
@@ -884,7 +897,7 @@ static int feature_rom_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, rom);
-	return 0;
+	return;
 }
 
 struct xocl_drv_private rom_priv = {

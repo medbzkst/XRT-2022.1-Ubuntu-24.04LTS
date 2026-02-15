@@ -217,7 +217,7 @@ struct platform_device_id m2m_id_table[] = {
 	{ },
 };
 
-static int m2m_remove(struct platform_device *pdev)
+static void m2m_remove(struct platform_device *pdev)
 {
 	struct xocl_dev *xdev = xocl_get_xdev(pdev);
 	struct xocl_m2m	*m2m;
@@ -226,7 +226,7 @@ static int m2m_remove(struct platform_device *pdev)
 	m2m = platform_get_drvdata(pdev);
 	if (!m2m) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	
 	if (!m2m->m2m_polling)
@@ -250,7 +250,7 @@ static int m2m_remove(struct platform_device *pdev)
 
 	M2M_INFO(m2m, "successfully removed M2M subdev");
 	devm_kfree(&pdev->dev, m2m);
-	return 0;
+
 }
 
 static int m2m_probe(struct platform_device *pdev)

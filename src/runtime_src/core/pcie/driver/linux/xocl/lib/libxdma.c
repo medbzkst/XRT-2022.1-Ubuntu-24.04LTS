@@ -1,3 +1,5 @@
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
 /**
  *  Copyright (C) 2017-2020 Xilinx, Inc. All rights reserved.
  *  Author: Karen Xie <karen.xie@xilinx.com>
@@ -836,7 +838,7 @@ static void xdma_request_release(struct xdma_dev *xdev,
 {
 	struct sg_table *sgt = req->sgt;
 	if (!req->dma_mapped) {
-		pci_unmap_sg(xdev->pdev, sgt->sgl, sgt->orig_nents,
+		dma_unmap_sg(&xdev->pdev->dev, sgt->sgl, sgt->orig_nents,
 			     req->dir);
 	}
 
@@ -3293,7 +3295,7 @@ ssize_t xdma_xfer_fastpath(void *dev_hndl, int channel, bool write, u64 ep_addr,
 		engine = &xdev->engine_c2h[channel];
 
 	if (!dma_mapped) {
-		nents = pci_map_sg(xdev->pdev, sg, sgt->orig_nents, engine->dir);
+		nents = dma_map_sg(&xdev->pdev->dev, sg, sgt->orig_nents, engine->dir);
 		if (!nents) {
 			xocl_pr_info("map sgl failed, sgt 0x%p.\n", sgt);
 			return -EIO;
@@ -3351,7 +3353,7 @@ ssize_t xdma_xfer_fastpath(void *dev_hndl, int channel, bool write, u64 ep_addr,
 			       (unsigned long)(&engine->regs));
 	}
 	if (!dma_mapped) {
-                pci_unmap_sg(xdev->pdev, sgt->sgl, sgt->orig_nents,
+                dma_unmap_sg(&xdev->pdev->dev, sgt->sgl, sgt->orig_nents,
                              engine->dir);
         }
 
@@ -3421,7 +3423,7 @@ ssize_t xdma_xfer_submit(void *dev_hndl, int channel, bool write, u64 ep_addr,
 	}
 
 	if (!dma_mapped) {
-		nents = pci_map_sg(xdev->pdev, sg, sgt->orig_nents, dir);
+		nents = dma_map_sg(&xdev->pdev->dev, sg, sgt->orig_nents, dir);
 		if (!nents) {
 			xocl_pr_info("map sgl failed, sgt 0x%p.\n", sgt);
 			return -EIO;
@@ -3706,18 +3708,18 @@ static int set_dma_mask(struct pci_dev *pdev)
 
 	dbg_init("sizeof(dma_addr_t) == %ld\n", sizeof(dma_addr_t));
 	/* 64-bit addressing capability for XDMA? */
-	if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(64))) {
+	if (!dma_set_mask(&pdev->dev, DMA_BIT_MASK(64))) {
 		/* query for DMA transfer */
 		/* @see Documentation/DMA-mapping.txt */
 		dbg_init("pci_set_dma_mask()\n");
 		/* use 64-bit DMA */
 		dbg_init("Using a 64-bit DMA mask.\n");
 		/* use 32-bit DMA for descriptors */
-		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
 		/* use 64-bit DMA, 32-bit for consistent */
-	} else if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+	} else if (!dma_set_mask(&pdev->dev, DMA_BIT_MASK(32))) {
 		dbg_init("Could not set 64-bit DMA mask.\n");
-		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
 		/* use 32-bit DMA */
 		dbg_init("Using a 32-bit DMA mask.\n");
 	} else {
@@ -4340,8 +4342,15 @@ MODULE_AUTHOR("Xilinx, Inc.");
 MODULE_DESCRIPTION(DRV_MODULE_DESC);
 MODULE_VERSION(DRV_MODULE_VERSION);
 MODULE_LICENSE("GPL v2");
+MODULE_IMPORT_NS("DMA_BUF");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
-MODULE_IMPORT_NS(DMA_BUF);
+#ifdef MODULE_IMPORT_NS
+/* Some kernels don't define the DMA_BUF import namespace token */
+#ifdef DMA_BUF
+/* removed old MODULE_IMPORT_NS(DMA_BUF) */
+#endif
+#endif
+
 #endif
 
 static int __init xdma_base_init(void)

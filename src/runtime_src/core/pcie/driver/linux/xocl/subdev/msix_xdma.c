@@ -90,7 +90,7 @@ static irqreturn_t msix_xdma_isr(int irq, void *arg)
 		ret = irq_entry->handler(irq, irq_entry->arg);
 
 	if (!IS_ERR_OR_NULL(irq_entry->event_ctx)) {
-		eventfd_signal(irq_entry->event_ctx, 1);
+		eventfd_signal(irq_entry->event_ctx);
 	}
 
 	return ret;
@@ -252,7 +252,7 @@ failed:
 	return ret;
 }
 
-static int msix_xdma_remove(struct platform_device *pdev)
+static void msix_xdma_remove(struct platform_device *pdev)
 {
 	xdev_handle_t xdev;
 	struct xocl_msix_xdma *msix_xdma;
@@ -262,7 +262,7 @@ static int msix_xdma_remove(struct platform_device *pdev)
 	msix_xdma = platform_get_drvdata(pdev);
 	if (!msix_xdma) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xdev = xocl_get_xdev(pdev);
@@ -287,7 +287,7 @@ static int msix_xdma_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, msix_xdma);
 
-	return 0;
+	return;
 }
 
 struct xocl_drv_private msix_xdma_priv = {

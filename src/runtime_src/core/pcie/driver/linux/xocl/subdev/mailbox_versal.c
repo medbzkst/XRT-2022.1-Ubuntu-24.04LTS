@@ -191,7 +191,7 @@ static int mailbox_versal_intr_probe(struct platform_device *pdev)
 	return mailbox_versal_intr_enable(pdev);
 }
 
-static int mailbox_versal_intr_remove(struct platform_device *pdev)
+static void mailbox_versal_intr_remove(struct platform_device *pdev)
 {
 	struct mailbox_versal *mbv = platform_get_drvdata(pdev);
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
@@ -203,7 +203,7 @@ static int mailbox_versal_intr_remove(struct platform_device *pdev)
 
 	mbv->mbv_irq = -1;
 
-	return 0;
+
 }
 
 static int mailbox_versal_request_intr(struct platform_device *pdev,
@@ -240,7 +240,7 @@ static struct xocl_mailbox_versal_funcs mailbox_versal_ops = {
 	.free_intr      = mailbox_versal_free_intr,
 };
 
-static int mailbox_versal_remove(struct platform_device *pdev)
+static void mailbox_versal_remove(struct platform_device *pdev)
 {
 	struct mailbox_versal *mbv = platform_get_drvdata(pdev);
 
@@ -249,7 +249,7 @@ static int mailbox_versal_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_release(mbv, NULL);
 
-	return 0;
+
 }
 
 static int mailbox_versal_probe(struct platform_device *pdev)

@@ -119,7 +119,7 @@ static int version_ctrl_sysfs_create(struct version_ctrl *vc)
 	return 0;
 }
 
-static int version_ctrl_remove(struct platform_device *pdev)
+static void version_ctrl_remove(struct platform_device *pdev)
 {
 	struct version_ctrl *version_ctrl;
 	void *hdl;
@@ -127,7 +127,7 @@ static int version_ctrl_remove(struct platform_device *pdev)
 	version_ctrl = platform_get_drvdata(pdev);
 	if (!version_ctrl) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	xocl_drvinst_release(version_ctrl, &hdl);
 
@@ -139,7 +139,7 @@ static int version_ctrl_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static struct xocl_version_ctrl_funcs vc_ops = {

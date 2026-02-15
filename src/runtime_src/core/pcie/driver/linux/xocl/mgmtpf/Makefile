@@ -63,6 +63,7 @@ xclmgmt-y := \
 	../subdev/xmc.o \
 	../subdev/xmc_u2.o \
 	../subdev/dna.o \
+	../subdev/ulite_stub.o \
 	../subdev/fmgr.o \
 	../subdev/mgmt_msix.o \
 	../subdev/flash.o \
@@ -72,7 +73,6 @@ xclmgmt-y := \
 	../subdev/ert.o \
 	../subdev/ddr_srsr.o \
 	../subdev/memory_hbm.o \
-	../subdev/ulite.o \
 	../subdev/calib_storage.o \
 	../subdev/pmc.o \
 	../subdev/xgq.o \

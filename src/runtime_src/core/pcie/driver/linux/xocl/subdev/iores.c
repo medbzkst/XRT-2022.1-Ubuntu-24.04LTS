@@ -83,7 +83,7 @@ static struct xocl_iores_funcs iores_ops = {
 	.get_offset = get_offset,
 };
 
-static int iores_remove(struct platform_device *pdev)
+static void iores_remove(struct platform_device *pdev)
 {
 	struct iores *iores;
 	int i;
@@ -91,7 +91,7 @@ static int iores_remove(struct platform_device *pdev)
 	iores = platform_get_drvdata(pdev);
 	if (!iores) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	for (i = 0; i < IORES_MAX; i++)
@@ -101,7 +101,7 @@ static int iores_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, iores);
 
-	return 0;
+	return;
 }
 
 static int iores_probe(struct platform_device *pdev)

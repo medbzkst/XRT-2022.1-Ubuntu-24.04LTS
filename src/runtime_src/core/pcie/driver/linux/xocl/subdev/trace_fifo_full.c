@@ -22,7 +22,7 @@ struct trace_fifo_full {
 	struct mutex 		lock;
 };
 
-static int trace_fifo_full_remove(struct platform_device *pdev)
+static void trace_fifo_full_remove(struct platform_device *pdev)
 {
 	struct trace_fifo_full *trace_fifo_full;
 	void *hdl;
@@ -30,7 +30,7 @@ static int trace_fifo_full_remove(struct platform_device *pdev)
 	trace_fifo_full = platform_get_drvdata(pdev);
 	if (!trace_fifo_full) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_drvinst_release(trace_fifo_full, &hdl);
@@ -39,7 +39,7 @@ static int trace_fifo_full_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static int trace_fifo_full_probe(struct platform_device *pdev)

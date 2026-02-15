@@ -21,7 +21,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/clock.h>
 #endif
-
+#include <linux/fs.h>
 int xrt_debug_bufsize;
 module_param(xrt_debug_bufsize, int, (S_IRUGO|S_IWUSR));
 MODULE_PARM_DESC(xrt_debug_bufsize, "Debug buffer size");
@@ -145,7 +145,7 @@ static const struct file_operations trace_fops = {
 	.open = trace_open,
 	.release = trace_release,
 	.read = trace_read,
-	.llseek = no_llseek,
+	.llseek = noop_llseek,
 };
 
 static ssize_t trace_mod_read(struct file *file, char __user *buf,

@@ -16,6 +16,13 @@
  */
 #include "common.h"
 #include "kds_core.h"
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 extern int kds_echo;
 
@@ -815,7 +822,7 @@ static struct attribute *xocl_persist_attrs[] = {
 };
 
 static ssize_t fdt_blob_output(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf, loff_t off, size_t count)
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct xocl_dev *xdev = dev_get_drvdata(dev);
@@ -853,7 +860,11 @@ static struct bin_attribute fdt_blob_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static const struct bin_attribute *xocl_bin_attrs[] = {
+#else
 static struct bin_attribute  *xocl_bin_attrs[] = {
+#endif
 	&fdt_blob_attr,
 	NULL,
 };

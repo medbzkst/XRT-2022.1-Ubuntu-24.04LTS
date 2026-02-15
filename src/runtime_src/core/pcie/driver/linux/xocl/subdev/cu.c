@@ -10,6 +10,13 @@
 #include "xocl_drv.h"
 #include "xrt_cu.h"
 #include "cu_xgq.h"
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 #define XCU_INFO(xcu, fmt, arg...) \
 	xocl_info(&xcu->pdev->dev, fmt "\n", ##arg)
@@ -185,7 +192,7 @@ static DEVICE_ATTR_RO(is_ucu);
 
 static ssize_t
 crc_buf_show(struct file *filp, struct kobject *kobj,
-	     struct bin_attribute *attr, char *buf,
+	     XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf,
 	     loff_t offset, size_t count)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
@@ -223,7 +230,11 @@ static struct bin_attribute crc_buf_attr = {
 	.size = 0,
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static const struct bin_attribute *cu_bin_attrs[] = {
+#else
 static struct bin_attribute *cu_bin_attrs[] = {
+#endif
 	&crc_buf_attr,
 	NULL,
 };
@@ -445,7 +456,7 @@ err:
 	return err;
 }
 
-static int cu_remove(struct platform_device *pdev)
+static void cu_remove(struct platform_device *pdev)
 {
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
 	struct xrt_cu_info *info;
@@ -454,7 +465,7 @@ static int cu_remove(struct platform_device *pdev)
 
 	xcu = platform_get_drvdata(pdev);
 	if (!xcu)
-		return -EINVAL;
+		return;
 
 	(void) sysfs_remove_group(&pdev->dev.kobj, &cu_attrgroup);
 	info = &xcu->base.info;
@@ -488,7 +499,7 @@ static int cu_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 
-	return 0;
+
 }
 
 static struct platform_device_id cu_id_table[] = {

@@ -634,7 +634,7 @@ static struct xocl_firewall_funcs fw_ops = {
 	.get_data = af_get_data,
 };
 
-static int firewall_remove(struct platform_device *pdev)
+static void firewall_remove(struct platform_device *pdev)
 {
 	struct firewall *fw;
 	int     i;
@@ -642,7 +642,7 @@ static int firewall_remove(struct platform_device *pdev)
 	fw = platform_get_drvdata(pdev);
 	if (!fw) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &firewall_attrgroup);
@@ -653,7 +653,7 @@ static int firewall_remove(struct platform_device *pdev)
 	}
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, fw);
-	return 0;
+
 }
 
 static void get_fw_ep_name(const char *res_name, char *result)

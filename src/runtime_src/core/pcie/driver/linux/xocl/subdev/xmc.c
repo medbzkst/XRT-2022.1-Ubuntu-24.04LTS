@@ -19,11 +19,18 @@
 #include <linux/hwmon-sysfs.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
+#include <linux/version.h>
 #include <ert.h>
 #include "../xocl_drv.h"
 #include "mgmt-ioctl.h"
 #include "mailbox_proto.h"
 #include "xclfeatures.h"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 /* Retry is set to 15s for XMC and also for SC */
 #define	MAX_XMC_RETRY			150
@@ -2610,7 +2617,7 @@ static struct attribute *xmc_mini_attrs[] = {
 };
 
 static ssize_t read_temp_by_mem_topology(struct file *filp,
-	struct kobject *kobj, struct bin_attribute *attr, char *buffer,
+	struct kobject *kobj, XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer,
 	loff_t offset, size_t count)
 {
 	u32 nread = 0;
@@ -2682,7 +2689,7 @@ static struct bin_attribute bin_dimm_temp_by_mem_topology_attr = {
 #define QSFP_DIAG_READ(PORT) 							\
 static ssize_t qsfp##PORT##_diag_read(                          		\
 	struct file *filp, struct kobject *kobj, 	                        \
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
 {                                                                               \
 	struct xocl_xmc *xmc =                                                  \
 		dev_get_drvdata(container_of(kobj, struct device, kobj));       \
@@ -2715,7 +2722,7 @@ QSFP_DIAG_ATTR(3);
 #define QSFP_I2C_RW(PORT, RW)							\
 static ssize_t qsfp##PORT##_i2c_##RW(                    			\
 	struct file *filp, struct kobject *kobj, 	                        \
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
 {                                                                               \
 	struct xocl_xmc *xmc =                                                  \
 		dev_get_drvdata(container_of(kobj, struct device, kobj));       \
@@ -2751,7 +2758,7 @@ QSFP_I2C_ATTR(3);
 #define QSFP_IO_CONFIG_RW(PORT, RW) 						\
 static ssize_t qsfp##PORT##_io_config_##RW(   		                        \
 	struct file *filp, struct kobject *kobj, 	                        \
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)     \
 {                                                                               \
 	struct xocl_xmc *xmc =                                                  \
 		dev_get_drvdata(container_of(kobj, struct device, kobj));       \
@@ -2782,7 +2789,11 @@ QSFP_IO_CONFIG_ATTR(1);
 QSFP_IO_CONFIG_ATTR(2);
 QSFP_IO_CONFIG_ATTR(3);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static const struct bin_attribute *xmc_bin_attrs[] = {
+#else
 static struct bin_attribute *xmc_bin_attrs[] = {
+#endif
 	&bin_dimm_temp_by_mem_topology_attr,
 	&bin_attr_qsfp0_diag,
 	&bin_attr_qsfp1_diag,
@@ -2805,7 +2816,7 @@ static struct attribute_group xmc_attr_group = {
 };
 
 static ssize_t cmc_image_read(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf, loff_t off, size_t count)
 {
 	struct xocl_xmc *xmc =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -2866,7 +2877,7 @@ static size_t image_write(char **image, size_t sz,
 }
 
 static ssize_t cmc_image_write(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
 {
 	struct xocl_xmc *xmc =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -2887,7 +2898,11 @@ static struct bin_attribute cmc_image_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static const struct bin_attribute *xmc_mini_bin_attrs[] = {
+#else
 static struct bin_attribute *xmc_mini_bin_attrs[] = {
+#endif
 	&cmc_image_attr,
 	NULL,
 };
@@ -3902,7 +3917,7 @@ static void xmc_unload_board_info(struct xocl_xmc *xmc)
 	xmc->bdinfo_raw = NULL;
 }
 
-static int xmc_remove(struct platform_device *pdev)
+static void xmc_remove(struct platform_device *pdev)
 {
 	struct xocl_xmc *xmc;
 	void *hdl;
@@ -3910,7 +3925,7 @@ static int xmc_remove(struct platform_device *pdev)
 
 	xmc = platform_get_drvdata(pdev);
 	if (!xmc)
-		return 0;
+		return;
 
 	xocl_drvinst_release(xmc, &hdl);
 
@@ -3945,7 +3960,7 @@ end:
 
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
-	return 0;
+	return;
 }
 
 static const char *xmc_get_board_info(uint32_t *bdinfo_raw,

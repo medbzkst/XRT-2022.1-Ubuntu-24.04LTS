@@ -620,7 +620,7 @@ failed:
     return err;
 }
 
-static int nifd_remove(struct platform_device *pdev)
+static void nifd_remove(struct platform_device *pdev)
 {
     struct xocl_nifd *nifd;
     struct xocl_dev_core *core;
@@ -633,7 +633,7 @@ static int nifd_remove(struct platform_device *pdev)
     nifd = platform_get_drvdata(pdev);
     if (!nifd) {
         xocl_err(&pdev->dev, "driver data is NULL");
-        return -EINVAL;
+        return;
     }
     xocl_drvinst_release(nifd, &hdl);
 
@@ -642,7 +642,7 @@ static int nifd_remove(struct platform_device *pdev)
     platform_set_drvdata(pdev, NULL);
     xocl_drvinst_free(hdl);
 
-    return 0;
+    return;
 }
 
 struct xocl_drv_private nifd_priv = {

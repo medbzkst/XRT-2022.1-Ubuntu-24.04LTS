@@ -20,6 +20,13 @@
 #include <ert.h>
 #include "../xocl_drv.h"
 #include "mgmt-ioctl.h"
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 #define MAX_ERT_RETRY			10
 #define RETRY_INTERVAL			100
@@ -183,7 +190,7 @@ static ssize_t reset_store(struct device *dev,
 static DEVICE_ATTR_WO(reset);
 
 static ssize_t image_read(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf, loff_t off, size_t count)
 {
 	struct xocl_ert *ert =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -244,7 +251,7 @@ static size_t _image_write(char **image, size_t sz,
 }
 
 static ssize_t image_write(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
 {
 	struct xocl_ert *ert =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -265,7 +272,11 @@ static struct bin_attribute ert_image_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static const struct bin_attribute *ert_bin_attrs[] = {
+#else
 static struct bin_attribute *ert_bin_attrs[] = {
+#endif
 	&ert_image_attr,
 	NULL,
 };
@@ -361,14 +372,14 @@ static struct xocl_mb_funcs ert_ops = {
 	.stop			= stop_ert,
 };
 
-static int ert_remove(struct platform_device *pdev)
+static void ert_remove(struct platform_device *pdev)
 {
 	struct xocl_ert *ert;
 	void *hdl;
 
 	ert = platform_get_drvdata(pdev);
 	if (!ert)
-		return 0;
+		return;
 
 	xocl_drvinst_release(ert, &hdl);
 
@@ -393,7 +404,7 @@ static int ert_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
-	return 0;
+
 }
 
 static int ert_probe(struct platform_device *pdev)

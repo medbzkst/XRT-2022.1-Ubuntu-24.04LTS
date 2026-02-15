@@ -18,6 +18,16 @@
 #include "../xocl_drv.h"
 #include "kds_client.h"
 #include "xrt_ert.h"
+#include <linux/timer.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_TIMER_FROM(var, timer, field) timer_container_of(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC timer_delete_sync
+#else
+#define XOCL_TIMER_FROM(var, timer, field) from_timer(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC del_timer_sync
+#endif
 
 //#define	SCHED_VERBOSE	1
 
@@ -645,7 +655,7 @@ static void ert_timer(unsigned long data)
 #else
 static void ert_timer(struct timer_list *t)
 {
-	struct xocl_ert_user *ert_user = from_timer(ert_user, t, timer);
+	struct xocl_ert_user *ert_user = XOCL_TIMER_FROM(ert_user, t, timer);
 #endif
 
 	atomic_inc(&ert_user->tick);
@@ -1308,7 +1318,7 @@ int ert_user_thread(void *data)
 		process_ert_pq(ert_user, &ert_user->pq, &ert_user->rq);
 		process_ert_pq(ert_user, &ert_user->pq_ctrl, &ert_user->rq_ctrl);
 	}
-	del_timer_sync(&ert_user->timer);
+	XOCL_DEL_TIMER_SYNC(&ert_user->timer);
 
 	if (!ert_user->bad_state)
 		ret = -EBUSY;
@@ -1453,7 +1463,7 @@ add_event:
 }
 
 
-static int ert_user_remove(struct platform_device *pdev)
+static void ert_user_remove(struct platform_device *pdev)
 {
 	struct xocl_ert_user *ert_user;
 	void *hdl;
@@ -1461,7 +1471,7 @@ static int ert_user_remove(struct platform_device *pdev)
 	ert_user = platform_get_drvdata(pdev);
 	if (!ert_user) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	ert_queue_intc_config(ert_user, false);
@@ -1478,7 +1488,7 @@ static int ert_user_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int ert_user_probe(struct platform_device *pdev)

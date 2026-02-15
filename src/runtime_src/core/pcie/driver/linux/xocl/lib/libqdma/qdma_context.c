@@ -1,3 +1,4 @@
+#include <linux/dma-mapping.h>
 /*
  * This file is part of the Xilinx DMA IP Core driver for Linux
  *

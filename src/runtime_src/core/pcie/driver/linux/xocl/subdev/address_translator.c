@@ -391,13 +391,13 @@ failed:
 }
 
 
-static int addr_translator_remove(struct platform_device *pdev)
+static void addr_translator_remove(struct platform_device *pdev)
 {
 	struct addr_translator *addr_translator = platform_get_drvdata(pdev);
 
 	if (!addr_translator) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &addr_translator_attrgroup);
@@ -408,7 +408,7 @@ static int addr_translator_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, addr_translator);
 
-	return 0;
+
 }
 
 struct xocl_drv_private addr_translator_priv = {

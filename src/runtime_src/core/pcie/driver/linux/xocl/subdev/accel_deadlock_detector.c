@@ -61,7 +61,7 @@ static struct attribute_group accel_deadlock_detector_attr_group = {
     .attrs = accel_deadlock_detector_attrs,
 };
 
-static int accel_deadlock_detector_remove(struct platform_device *pdev)
+static void accel_deadlock_detector_remove(struct platform_device *pdev)
 {
     struct xocl_accel_deadlock_detector *accel_deadlock_detector = NULL;
     void *hdl = NULL;
@@ -69,7 +69,7 @@ static int accel_deadlock_detector_remove(struct platform_device *pdev)
     accel_deadlock_detector = platform_get_drvdata(pdev);
     if (!accel_deadlock_detector) {
         xocl_err(&pdev->dev, "driver data is NULL");
-        return -EINVAL;
+        return;
     }
 
     sysfs_remove_group(&pdev->dev.kobj, &accel_deadlock_detector_attr_group);
@@ -84,7 +84,7 @@ static int accel_deadlock_detector_remove(struct platform_device *pdev)
 
     xocl_drvinst_free(hdl);
 
-    return 0;
+
 }
 
 static int accel_deadlock_detector_probe(struct platform_device *pdev)
@@ -226,9 +226,9 @@ static int accel_deadlock_detector_mmap(struct file *filp, struct vm_area_struct
 
     // prevent touching the pages (byte access) for swap-in, and prevent the pages from being swapped out
 #ifndef VM_RESERVED
-    vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+    vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-    vma->vm_flags |= VM_IO | VM_RESERVED;
+    vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
     // make MMIO accessible to user space

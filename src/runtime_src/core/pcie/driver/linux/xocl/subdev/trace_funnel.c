@@ -64,7 +64,7 @@ static long train_clock(struct trace_funnel *trace_funnel, void __user *arg)
 	return 0;
 }
 
-static int trace_funnel_remove(struct platform_device *pdev)
+static void trace_funnel_remove(struct platform_device *pdev)
 {
 	struct trace_funnel *trace_funnel;
 	void *hdl;
@@ -72,7 +72,7 @@ static int trace_funnel_remove(struct platform_device *pdev)
 	trace_funnel = platform_get_drvdata(pdev);
 	if (!trace_funnel) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_drvinst_release(trace_funnel, &hdl);
@@ -84,7 +84,7 @@ static int trace_funnel_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static int trace_funnel_probe(struct platform_device *pdev)
@@ -212,9 +212,9 @@ static int trace_funnel_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * and prevent the pages from being swapped out
 	 */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
 	/* make MMIO accessible to user space */

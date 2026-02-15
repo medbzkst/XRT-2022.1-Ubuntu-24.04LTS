@@ -27,6 +27,15 @@
 #include "xocl_errors.h"
 #include "common.h"
 #include "version.h"
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
+#include <linux/mmzone.h>
+
+#ifndef MAX_ORDER_NR_PAGES
+#define MAX_ORDER_NR_PAGES (1UL << 10)   /* 1024 pages = 4MB on 4k pages */
+#endif
 
 #ifndef PCI_EXT_CAP_ID_REBAR
 #define PCI_EXT_CAP_ID_REBAR 0x15
@@ -623,7 +632,7 @@ static void xocl_mb_connect(struct xocl_dev *xdev)
 	mb_conn->kaddr = (uint64_t)kaddr;
 	mb_conn->paddr = (uint64_t)virt_to_phys(kaddr);
 	get_random_bytes(kaddr, PAGE_SIZE);
-	mb_conn->crc32 = crc32c_le(~0, kaddr, PAGE_SIZE);
+	mb_conn->crc32 = crc32c(~0, kaddr, PAGE_SIZE);
 	mb_conn->version = XCL_MB_PROTOCOL_VER;
 
 	ret = xocl_peer_request(xdev, mb_req, reqlen, resp, &resplen,
@@ -1251,7 +1260,7 @@ static void xocl_cma_mem_free(struct xocl_dev *xdev, uint32_t idx)
 
 	if (cma_mem->regular_page) {
 		dma_unmap_page(&xdev->core.pdev->dev, cma_mem->paddr,
-			cma_mem->size, PCI_DMA_BIDIRECTIONAL);
+			cma_mem->size, DMA_BIDIRECTIONAL);
 		__free_pages(cma_mem->regular_page, get_order(cma_mem->size));
 		cma_mem->regular_page = NULL;
 	} else if (cma_mem->pages) {
@@ -1501,7 +1510,7 @@ static int xocl_cma_mem_alloc_by_idx(struct xocl_dev *xdev, uint64_t size, uint3
 	}
 
 	dma_addr = dma_map_page(dev, page, 0, size,
-		PCI_DMA_BIDIRECTIONAL);
+		DMA_BIDIRECTIONAL);
 	if (unlikely(dma_mapping_error(dev, dma_addr))) {
 		DRM_ERROR("Unable to dma map pages");
 		__free_pages(page, order);
@@ -1512,7 +1521,7 @@ static int xocl_cma_mem_alloc_by_idx(struct xocl_dev *xdev, uint64_t size, uint3
 		roundup(PAGE_SIZE, size) >> PAGE_SHIFT);
 
 	if (!cma_mem->pages) {
-		dma_unmap_page(dev, dma_addr, size, PCI_DMA_BIDIRECTIONAL);
+		dma_unmap_page(dev, dma_addr, size, DMA_BIDIRECTIONAL);
 		__free_pages(page, order);
 		return -ENOMEM;
 	}
@@ -1551,7 +1560,7 @@ static int xocl_cma_mem_alloc(struct xocl_dev *xdev, uint64_t size)
 		return -EINVAL;
 	}
 
-	if (page_sz > (PAGE_SIZE << (MAX_ORDER-1))) {
+	if (page_sz > (PAGE_SIZE << (MAX_ORDER_NR_PAGES-1))) {
 		DRM_WARN("Unable to allocate with page size 0x%llx", page_sz);
 		return -EINVAL;
 	}
@@ -1782,18 +1791,18 @@ int xocl_userpf_probe(struct pci_dev *pdev,
 
 	xocl_drvinst_set_offline(xdev, false);
 
-	if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(64))) {
+	if (!dma_set_mask(&pdev->dev, DMA_BIT_MASK(64))) {
 		/* query for DMA transfer */
 		/* @see Documentation/DMA-mapping.txt */
 		xocl_info(&pdev->dev, "pci_set_dma_mask()\n");
 		/* use 64-bit DMA */
 		xocl_info(&pdev->dev, "Using a 64-bit DMA mask.\n");
 		/* use 32-bit DMA for descriptors */
-		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
 		/* use 64-bit DMA, 32-bit for consistent */
-	} else if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+	} else if (!dma_set_mask(&pdev->dev, DMA_BIT_MASK(32))) {
 		xocl_info(&pdev->dev, "Could not set 64-bit DMA mask.\n");
-		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
 		/* use 32-bit DMA */
 		xocl_info(&pdev->dev, "Using a 32-bit DMA mask.\n");
 	} else {
@@ -1955,7 +1964,7 @@ static int __init xocl_init(void)
 {
 	int		ret, i = 0;
 
-	xrt_class = class_create(THIS_MODULE, "xrt_user");
+	xrt_class = class_create("xrt_user");
 	if (IS_ERR(xrt_class)) {
 		ret = PTR_ERR(xrt_class);
 		goto err_class_create;
@@ -2010,6 +2019,13 @@ MODULE_VERSION(XRT_DRIVER_VERSION);
 MODULE_DESCRIPTION(XOCL_DRIVER_DESC);
 MODULE_AUTHOR("Lizhi Hou <lizhi.hou@xilinx.com>");
 MODULE_LICENSE("GPL v2");
+MODULE_IMPORT_NS("DMA_BUF");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
-MODULE_IMPORT_NS(DMA_BUF);
+#ifdef MODULE_IMPORT_NS
+/* Some kernels don't define the DMA_BUF import namespace token */
+#ifdef DMA_BUF
+/* removed old MODULE_IMPORT_NS(DMA_BUF) */
+#endif
+#endif
+
 #endif

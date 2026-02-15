@@ -24,6 +24,12 @@
 #include <linux/pagemap.h>
 #include <linux/version.h>
 #include "common.h"
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
+#include <linux/iosys-map.h>
+#include <linux/dma-buf.h>
+
+
 
 #ifdef _XOCL_BO_DEBUG
 #define	BO_ENTER(fmt, args...)		\
@@ -189,8 +195,8 @@ static void xocl_free_bo(struct drm_gem_object *obj)
 	}
 
 	if (xobj->dma_nsg) {
-		pci_unmap_sg(xdev->core.pdev, xobj->sgt->sgl, xobj->dma_nsg,
-			PCI_DMA_BIDIRECTIONAL);
+		dma_unmap_sg(&xdev->core.pdev->dev, xobj->sgt->sgl, xobj->dma_nsg,
+			DMA_BIDIRECTIONAL);
 	}
 
 	if (xobj->pages) {
@@ -1275,17 +1281,17 @@ void xocl_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
 
 }
 #else
-int xocl_gem_prime_vmap(struct drm_gem_object *obj, struct dma_buf_map *map)
+int xocl_gem_prime_vmap(struct drm_gem_object *obj, struct iosys_map *map)
 {
         struct drm_xocl_bo *xobj = to_xocl_bo(obj);
 
         BO_ENTER("xobj %p", xobj);
-        dma_buf_map_set_vaddr(map, xobj->vmapping);
+        iosys_map_set_vaddr(map, xobj->vmapping);
 
         return 0;
 }
 
-void xocl_gem_prime_vunmap(struct drm_gem_object *obj, struct dma_buf_map *map)
+void xocl_gem_prime_vunmap(struct drm_gem_object *obj, struct iosys_map *map)
 {
 
 }
@@ -1326,7 +1332,7 @@ int xocl_gem_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma)
 	}
 
 	vma->vm_private_data = obj;
-	vma->vm_flags |= VM_MIXEDMAP;
+	vm_flags_set(vma, VM_MIXEDMAP);
 
 	return 0;
 }

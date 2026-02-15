@@ -580,14 +580,14 @@ static int mem_hbm_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int mem_hbm_remove(struct platform_device *pdev)
+static void mem_hbm_remove(struct platform_device *pdev)
 {
 	struct xocl_mem_hbm	*mem_hbm;
 
 	mem_hbm = platform_get_drvdata(pdev);
 	if (!mem_hbm) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	vfree(mem_hbm->calib_cache);
 	mem_hbm->calib_cache = NULL;
@@ -597,7 +597,7 @@ static int mem_hbm_remove(struct platform_device *pdev)
 
 	devm_kfree(&pdev->dev, mem_hbm);
 
-	return 0;
+
 }
 
 struct xocl_drv_private mem_hbm_priv = {

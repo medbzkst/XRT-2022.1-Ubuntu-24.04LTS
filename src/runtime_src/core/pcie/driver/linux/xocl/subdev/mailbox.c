@@ -196,12 +196,24 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
+#include <linux/timer.h>
+#include <linux/version.h>
 #include <linux/io.h>
 #include <linux/ioctl.h>
 #include "../xocl_drv.h"
 #include "mailbox_proto.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/clock.h>
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+#define XOCL_TIMER_FROM(var, timer, field) timer_container_of(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC timer_delete_sync
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_TIMER_FROM(var, timer, field) from_timer(var, timer, field)
+#define XOCL_DEL_TIMER_SYNC del_timer_sync
+#define XOCL_BIN_ATTR_CONST
 #endif
 
 int mailbox_no_intr = 1;
@@ -658,7 +670,7 @@ static void chan_timer(unsigned long data)
 #else
 static void chan_timer(struct timer_list *t)
 {
-	struct mailbox_channel *ch = from_timer(ch, t, mbc_timer);
+	struct mailbox_channel *ch = XOCL_TIMER_FROM(ch, t, mbc_timer);
 #endif
 
 	MBX_VERBOSE(ch->mbc_parent, "%s tick", ch_name(ch));
@@ -697,7 +709,7 @@ static void chan_config_timer(struct mailbox_channel *ch)
 		if (on)
 			mod_timer(&ch->mbc_timer, jiffies + MAILBOX_TIMER);
 		else
-			del_timer_sync(&ch->mbc_timer);
+			XOCL_DEL_TIMER_SYNC(&ch->mbc_timer);
 	}
 
 	MBX_VERBOSE(mbx, "%s timer is %s", ch_name(ch), on ? "on" : "off");
@@ -1106,7 +1118,7 @@ static void chan_fini(struct mailbox_channel *ch)
 	while ((msg = chan_msg_dequeue(ch, INVALID_MSG_ID)) != NULL)
 		msg_done(msg, -ESHUTDOWN);
 
-	del_timer_sync(&ch->mbc_timer);
+	XOCL_DEL_TIMER_SYNC(&ch->mbc_timer);
 
 	mutex_destroy(&ch->mbc_mutex);
 	mutex_destroy(&ch->sw_chan_mutex);
@@ -2068,7 +2080,7 @@ static struct attribute *mailbox_attrs[] = {
  * format and send to peer through this node.
  */
 static ssize_t mbx_send_raw_pkt(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
 {
 #define MAX_RETRY 6
 	int i;
@@ -2139,7 +2151,7 @@ static struct bin_attribute bin_attr_raw_pkt_send = {
 };
 
 static ssize_t mbx_send_body(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buffer, loff_t off, size_t count)
 {
 	struct mailbox *mbx =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -2197,7 +2209,7 @@ static struct bin_attribute bin_attr_msg_send_body = {
 };
 
 static ssize_t mbx_recv_body(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *attr, char *buf, loff_t off, size_t count)
+	XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf, loff_t off, size_t count)
 {
 	struct mailbox *mbx =
 		dev_get_drvdata(container_of(kobj, struct device, kobj));
@@ -2235,7 +2247,11 @@ static struct bin_attribute bin_attr_msg_recv_body = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static const struct bin_attribute *mailbox_bin_attrs[] = {
+#else
 static struct bin_attribute *mailbox_bin_attrs[] = {
+#endif
 	&bin_attr_raw_pkt_send,
 	&bin_attr_msg_send_body,
 	&bin_attr_msg_recv_body,
@@ -3101,7 +3117,7 @@ static const struct file_operations mailbox_fops = {
 };
 
 /* Tearing down driver in the exact reverse order as driver setting up. */
-static int mailbox_remove(struct platform_device *pdev)
+static void mailbox_remove(struct platform_device *pdev)
 {
 	struct mailbox *mbx = platform_get_drvdata(pdev);
 	void *hdl;
@@ -3120,7 +3136,7 @@ static int mailbox_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
-	return 0;
+	return;
 }
 
 static int mailbox_probe(struct platform_device *pdev)

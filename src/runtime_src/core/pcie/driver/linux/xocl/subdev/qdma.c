@@ -27,6 +27,14 @@
 #include "../xocl_drm.h"
 #include "../lib/libqdma/libqdma_export.h"
 #include "qdma_ioctl.h"
+#include <linux/pci.h>
+#include <linux/dma-mapping.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,0,0)
+  #define IO_IOVEC(io) ((io)->__iov)
+#else
+  #define IO_IOVEC(io) ((io)->iov)
+#endif
 
 #ifndef VM_RESERVED
 #define VM_RESERVED (VM_DONTEXPAND | VM_DONTDUMP)
@@ -487,8 +495,9 @@ static ssize_t qdma_migrate_bo(struct platform_device *pdev,
 	chan = &qdma->chans[write][channel];
 
 	dir = write ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
-	nents = pci_map_sg(XDEV(xdev)->pdev, sgt->sgl, sgt->orig_nents, dir);
-        if (!nents) {
+	struct device *dev = &XDEV(xdev)->pdev->dev;
+	nents = dma_map_sg(dev, sgt->sgl, sgt->orig_nents, dir);
+	if (!nents) {
 		xocl_err(&pdev->dev, "map sgl failed, sgt 0x%p.\n", sgt);
 		return -EIO;
 	}
@@ -513,7 +522,7 @@ static ssize_t qdma_migrate_bo(struct platform_device *pdev,
 		dump_sgtable(&pdev->dev, sgt);
 	}
 
-	pci_unmap_sg(XDEV(xdev)->pdev, sgt->sgl, nents, dir);
+	dma_unmap_sg(dev, sgt->sgl, nents, dir);
 
 	return len;
 }
@@ -900,7 +909,7 @@ static void queue_req_release_resource(struct qdma_stream_queue *queue,
 	if (reqcb->is_unmgd) {
 		xdev_handle_t xdev = xocl_get_xdev(queue->qdma->pdev);
 
-		pci_unmap_sg(XDEV(xdev)->pdev, reqcb->unmgd.sgt->sgl,
+		dma_unmap_sg(&XDEV(xdev)->pdev->dev, reqcb->unmgd.sgt->sgl,
 			     reqcb->nsg, queue->qconf.c2h ?  DMA_FROM_DEVICE :
 			    				     DMA_TO_DEVICE);
 		xocl_finish_unmgd(&reqcb->unmgd);
@@ -1093,7 +1102,7 @@ static ssize_t queue_rw(struct xocl_qdma *qdma, struct qdma_stream_queue *queue,
 			goto error_out;
 		}
 
-		nents = pci_map_sg(XDEV(xdev)->pdev, unmgd.sgt->sgl,
+		nents = dma_map_sg(&XDEV(xdev)->pdev->dev, unmgd.sgt->sgl,
 			unmgd.sgt->orig_nents, dir);
 		if (!nents) {
 			xocl_err(&qdma->pdev->dev, "map sgl failed");
@@ -1254,11 +1263,11 @@ static ssize_t queue_write_iter(struct kiocb *kiocb, struct iov_iter *io)
 		return -EINVAL;
 	}
 
-	if (!is_sync_kiocb(kiocb)) {
-		return queue_aio_write(kiocb, io->iov, nr, io->iov_offset);
+	else if (!is_sync_kiocb(kiocb)) {
+		return queue_aio_write(kiocb, IO_IOVEC(io), nr, io->iov_offset);
 	}
-
-	return queue_rw(qdma, queue, true, io->iov, nr, NULL);
+	else
+	{return queue_rw(qdma, queue, true, IO_IOVEC(io), nr, NULL);}
 }
 
 static ssize_t queue_read_iter(struct kiocb *kiocb, struct iov_iter *io)
@@ -1276,10 +1285,11 @@ static ssize_t queue_read_iter(struct kiocb *kiocb, struct iov_iter *io)
 		return -EINVAL;
 	}
 
-	if (!is_sync_kiocb(kiocb)) {
-		return queue_aio_read(kiocb, io->iov, nr, io->iov_offset);
+	else if (!is_sync_kiocb(kiocb)) {
+		return queue_aio_read(kiocb, IO_IOVEC(io), nr, io->iov_offset);
 	}
-	return queue_rw(qdma, queue, false, io->iov, nr, NULL);
+	else 
+	{return queue_rw(qdma, queue, false, IO_IOVEC(io), nr, NULL);}
 }
 #endif
 
@@ -1615,8 +1625,8 @@ static long qdma_stream_ioctl_alloc_buffer(struct xocl_qdma *qdma,
 		goto failed;
 	}
 
-	xobj->dma_nsg = pci_map_sg(XDEV(xdev)->pdev, xobj->sgt->sgl,
-	xobj->sgt->orig_nents, PCI_DMA_BIDIRECTIONAL);
+	xobj->dma_nsg = dma_map_sg(&XDEV(xdev)->pdev->dev, xobj->sgt->sgl,
+	xobj->sgt->orig_nents, DMA_BIDIRECTIONAL);
 	if (!xobj->dma_nsg) {
 		xocl_err(&qdma->pdev->dev, "map sgl failed, sgt");
 		ret = -EIO;
@@ -1865,7 +1875,7 @@ failed:
 	return ret;
 }
 
-static int qdma_remove(struct platform_device *pdev)
+static void qdma_remove(struct platform_device *pdev)
 {
 	struct xocl_qdma *qdma= platform_get_drvdata(pdev);
 	xdev_handle_t xdev;
@@ -1878,7 +1888,7 @@ static int qdma_remove(struct platform_device *pdev)
 
 	if (!qdma) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xdev = xocl_get_xdev(pdev);
@@ -1904,7 +1914,7 @@ static int qdma_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 struct xocl_drv_private qdma_priv = {

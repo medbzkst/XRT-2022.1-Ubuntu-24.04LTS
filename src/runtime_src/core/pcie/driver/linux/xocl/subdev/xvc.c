@@ -375,7 +375,7 @@ failed:
 }
 
 
-static int xvc_remove(struct platform_device *pdev)
+static void xvc_remove(struct platform_device *pdev)
 {
 	struct xocl_xvc	*xvc;
 	void *hdl;
@@ -383,7 +383,7 @@ static int xvc_remove(struct platform_device *pdev)
 	xvc = platform_get_drvdata(pdev);
 	if (!xvc) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	xocl_drvinst_release(xvc, &hdl);
 	if (xvc->base)
@@ -392,7 +392,7 @@ static int xvc_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 struct xocl_drv_private xvc_pub = {

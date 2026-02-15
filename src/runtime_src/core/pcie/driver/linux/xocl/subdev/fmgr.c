@@ -195,7 +195,7 @@ static int fmgr_probe(struct platform_device *pdev)
 	return ret;
 }
 
-static int fmgr_remove(struct platform_device *pdev)
+static void fmgr_remove(struct platform_device *pdev)
 {
 #if defined(FPGA_MGR_SUPPORT)
 	struct fpga_manager *mgr = platform_get_drvdata(pdev);
@@ -217,7 +217,7 @@ static int fmgr_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	vfree(obj->blob);
 	kfree(obj);
-	return 0;
+	return;
 }
 
 static struct platform_driver	fmgr_driver = {

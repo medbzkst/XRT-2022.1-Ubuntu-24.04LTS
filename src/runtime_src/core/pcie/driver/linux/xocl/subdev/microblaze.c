@@ -612,14 +612,14 @@ static struct xocl_mb_funcs mb_ops = {
 
 
 
-static int mb_remove(struct platform_device *pdev)
+static void mb_remove(struct platform_device *pdev)
 {
 	struct xocl_mb *mb;
 	int	i;
 
 	mb = platform_get_drvdata(pdev);
 	if (!mb)
-		return 0;
+		return;
 
 	if (mb->mgmt_binary)
 		devm_kfree(&pdev->dev, mb->mgmt_binary);
@@ -645,7 +645,7 @@ static int mb_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, mb);
 
-	return 0;
+	return;
 }
 
 static int mb_probe(struct platform_device *pdev)

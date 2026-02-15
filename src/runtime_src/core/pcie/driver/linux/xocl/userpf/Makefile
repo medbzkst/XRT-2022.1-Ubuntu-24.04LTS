@@ -81,6 +81,7 @@ xocl-y := \
 	../subdev/trace_s2mm.o\
 	../subdev/lapc.o\
 	../subdev/spc.o\
+	../subdev/ulite_stub.o\
 	../subdev/ddr_srsr.o\
 	../subdev/memory_hbm.o \
 	../subdev/address_translator.o \

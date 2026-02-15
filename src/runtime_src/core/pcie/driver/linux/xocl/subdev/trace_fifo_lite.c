@@ -61,7 +61,7 @@ static long get_numbytes(struct trace_fifo_lite *fifo, void __user *arg)
 	return 0;
 }
 
-static int trace_fifo_lite_remove(struct platform_device *pdev)
+static void trace_fifo_lite_remove(struct platform_device *pdev)
 {
 	struct trace_fifo_lite *trace_fifo_lite;
 	void *hdl;
@@ -69,7 +69,7 @@ static int trace_fifo_lite_remove(struct platform_device *pdev)
 	trace_fifo_lite = platform_get_drvdata(pdev);
 	if (!trace_fifo_lite) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xocl_drvinst_release(trace_fifo_lite, &hdl);
@@ -81,7 +81,7 @@ static int trace_fifo_lite_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static int trace_fifo_lite_probe(struct platform_device *pdev)
@@ -209,9 +209,9 @@ static int trace_fifo_lite_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * and prevent the pages from being swapped out
 	 */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
 	/* make MMIO accessible to user space */

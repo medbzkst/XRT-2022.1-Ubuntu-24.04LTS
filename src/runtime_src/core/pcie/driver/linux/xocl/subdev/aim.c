@@ -17,6 +17,7 @@
 
 #include "../xocl_drv.h"
 #include "profile_ioctl.h"
+#include <linux/mm.h>
 
 /************************ AXI Interface Monitor (AIM, earlier SPM) ***********************/
 
@@ -244,7 +245,7 @@ static struct attribute_group aim_attr_group = {
 			   .attrs = aim_attrs,
 };
 
-static int aim_remove(struct platform_device *pdev)
+static void aim_remove(struct platform_device *pdev)
 {
 	struct xocl_aim *aim;
 	void *hdl;
@@ -252,7 +253,7 @@ static int aim_remove(struct platform_device *pdev)
 	aim = platform_get_drvdata(pdev);
 	if (!aim) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &aim_attr_group);
@@ -266,7 +267,7 @@ static int aim_remove(struct platform_device *pdev)
 
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int aim_probe(struct platform_device *pdev)
@@ -413,9 +414,9 @@ static int aim_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * and prevent the pages from being swapped out
 	 */
 #ifndef VM_RESERVED
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
 #else
-	vma->vm_flags |= VM_IO | VM_RESERVED;
+	vm_flags_set(vma, VM_IO | VM_RESERVED);
 #endif
 
 	/* make MMIO accessible to user space */

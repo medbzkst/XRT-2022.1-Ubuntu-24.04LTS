@@ -1956,7 +1956,7 @@ static int xgq_ospi_close(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int xgq_vmr_remove(struct platform_device *pdev)
+static void xgq_vmr_remove(struct platform_device *pdev)
 {
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
 	struct xocl_xgq_vmr	*xgq;
@@ -1965,7 +1965,7 @@ static int xgq_vmr_remove(struct platform_device *pdev)
 	xgq = platform_get_drvdata(pdev);
 	if (!xgq) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	xgq_stop_services(xgq);
@@ -1988,7 +1988,7 @@ static int xgq_vmr_remove(struct platform_device *pdev)
 	xocl_drvinst_free(hdl);
 
 	XGQ_INFO(xgq, "successfully removed xgq subdev");
-	return 0;
+	return;
 }
 
 /* Wait for xgq service is fully ready after a reset. */

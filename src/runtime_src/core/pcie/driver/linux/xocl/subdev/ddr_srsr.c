@@ -312,13 +312,13 @@ failed:
 }
 
 
-static int xocl_ddr_srsr_remove(struct platform_device *pdev)
+static void xocl_ddr_srsr_remove(struct platform_device *pdev)
 {
 	struct xocl_ddr_srsr *xocl_ddr_srsr = platform_get_drvdata(pdev);
 
 	if (!xocl_ddr_srsr) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &xocl_ddr_srsr_attrgroup);
@@ -330,7 +330,7 @@ static int xocl_ddr_srsr_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, xocl_ddr_srsr);
 
-	return 0;
+
 }
 
 struct xocl_drv_private srsr_priv = {

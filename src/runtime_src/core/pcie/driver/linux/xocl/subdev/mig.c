@@ -498,14 +498,14 @@ static int mig_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int mig_remove(struct platform_device *pdev)
+static void mig_remove(struct platform_device *pdev)
 {
 	struct xocl_mig	*mig;
 
 	mig = platform_get_drvdata(pdev);
 	if (!mig) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	sysfs_destroy_mig(pdev);
 	if (mig->base)
@@ -514,7 +514,7 @@ static int mig_remove(struct platform_device *pdev)
 
 	devm_kfree(&pdev->dev, mig);
 
-	return 0;
+	return;
 }
 
 struct xocl_drv_private mig_priv = {

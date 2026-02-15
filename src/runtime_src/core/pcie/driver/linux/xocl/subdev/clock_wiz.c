@@ -1245,14 +1245,14 @@ static struct xocl_clock_wiz_funcs clock_wiz_ops = {
 	.get_data = clock_wiz_get_data,
 };
 
-static int clock_wiz_remove(struct platform_device *pdev)
+static void clock_wiz_remove(struct platform_device *pdev)
 {
 	struct clock_wiz *clock_w;
 
 	clock_w = platform_get_drvdata(pdev);
 	if (!clock_w) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &clock_wiz_attr_group);
@@ -1263,7 +1263,7 @@ static int clock_wiz_remove(struct platform_device *pdev)
 	CLOCK_W_INFO(clock_w, "successfully removed Clock Wizard subdev");
 	devm_kfree(&pdev->dev, clock_w);
 
-	return 0;
+
 }
 
 static int clock_wiz_probe(struct platform_device *pdev)

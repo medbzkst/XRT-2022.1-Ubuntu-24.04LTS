@@ -138,14 +138,14 @@ static struct xocl_pmc_funcs pmc_ops = {
 	.enable_reset = pmc_enable_reset,
 };
 
-static int pmc_remove(struct platform_device *pdev)
+static void pmc_remove(struct platform_device *pdev)
 {
 	struct pmc *pmc;
 
 	pmc = platform_get_drvdata(pdev);
 	if (!pmc) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	sysfs_remove_group(&pdev->dev.kobj, &pmc_attr_group);
@@ -155,7 +155,7 @@ static int pmc_remove(struct platform_device *pdev)
 	devm_kfree(&pdev->dev, pmc);
 
 	PMC_INFO(pmc, "successfully removed pmc subdev");
-	return 0;
+	return;
 }
 
 static int pmc_probe(struct platform_device *pdev)

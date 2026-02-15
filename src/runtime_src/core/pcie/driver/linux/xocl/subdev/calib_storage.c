@@ -173,13 +173,13 @@ static int calib_storage_probe(struct platform_device *pdev)
 }
 
 
-static int calib_storage_remove(struct platform_device *pdev)
+static void calib_storage_remove(struct platform_device *pdev)
 {
 	struct calib_storage *calib_storage = platform_get_drvdata(pdev);
 
 	if (!calib_storage) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	calib_cache_clean(pdev);
 	vfree(calib_storage->cache);
@@ -187,7 +187,7 @@ static int calib_storage_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, calib_storage);
 
-	return 0;
+
 }
 
 struct xocl_drv_private calib_storage_priv = {

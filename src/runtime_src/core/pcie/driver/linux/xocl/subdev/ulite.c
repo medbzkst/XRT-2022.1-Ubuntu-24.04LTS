@@ -21,6 +21,9 @@
 #include <linux/tty_flip.h>
 #include "../xocl_drv.h"
 #include "mgmt-ioctl.h"
+#include <linux/serial_reg.h>
+#include <linux/tty_flip.h>
+#include <linux/circ_buf.h>
 
 #define ULITE_NAME		"ttyXRTUL"
 #define ULITE_NR_UARTS		64
@@ -188,7 +191,7 @@ static int ulite_receive(struct uart_port *port, int stat)
 
 static int ulite_transmit(struct uart_port *port, int stat)
 {
-	struct circ_buf *xmit  = &port->state->xmit;
+	struct circ_buf *xmit = uart_port_xmit(port);
 
 	if (stat & ULITE_STATUS_TXFULL)
 		return 0;
@@ -339,7 +342,7 @@ static void ulite_shutdown(struct uart_port *port)
 }
 
 static void ulite_set_termios(struct uart_port *port, struct ktermios *termios,
-			      struct ktermios *old)
+			      const struct ktermios *old)
 {
 	unsigned long flags;
 	unsigned int baud;
@@ -549,30 +552,30 @@ done:
 	return ret;
 }
 
-static int ulite_remove(struct platform_device *pdev)
+static void ulite_remove(struct platform_device *pdev)
 {
 	struct uart_port *port = platform_get_drvdata(pdev);
 	int ret = 0;
 	struct uartlite_data *pdata;
 
 	if (!port)
-		return ret;
+		return;
 
 	sysfs_remove_group(&pdev->dev.kobj, &ulite_attr_group);
 
 	pdata = port->private_data;
 	if (!pdata)
-		return ret;
+		return;
 
 	atomic_set(&pdata->console_opened, 0);
 	if (pdata->thread)
 		kthread_stop(pdata->thread);
 
-	ret = uart_remove_one_port(pdata->xcl_ulite_driver, port);
+	uart_remove_one_port(pdata->xcl_ulite_driver, port);
 	platform_set_drvdata(pdev, NULL);
 	port->mapbase = 0;
 
-	return ret;
+	return;
 }
 
 struct xocl_drv_private ulite_priv = {

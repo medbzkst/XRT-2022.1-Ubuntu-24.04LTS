@@ -18,6 +18,7 @@
 #include "xclfeatures.h"
 #include "xocl_drv.h"
 #include "version.h"
+#include <linux/vmalloc.h>
 
 struct xocl_subdev_array {
 	xdev_handle_t xdev_hdl;

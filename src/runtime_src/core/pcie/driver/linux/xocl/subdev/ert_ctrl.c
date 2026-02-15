@@ -20,6 +20,13 @@
 #include "../xgq_xocl_plat.h"
 #include "xocl_xgq.h"
 #include "xrt_drv.h"
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+#define XOCL_BIN_ATTR_CONST const
+#else
+#define XOCL_BIN_ATTR_CONST
+#endif
 
 #define	EC_ERR(ec, fmt, arg...)	\
 	xocl_err(&(ec)->ec_pdev->dev, fmt "\n", ##arg)
@@ -243,7 +250,7 @@ static struct attribute *ert_ctrl_attrs[] = {
 
 static ssize_t
 cq_bin_show(struct file *filp, struct kobject *kobj,
-	    struct bin_attribute *attr, char *buf,
+	    XOCL_BIN_ATTR_CONST struct bin_attribute *attr, char *buf,
 	    loff_t offset, size_t count)
 {
 	struct ert_ctrl *ec;
@@ -280,7 +287,11 @@ static struct bin_attribute cq_attr = {
 	.size = 0
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0)
+static const struct bin_attribute *ert_ctrl_bin_attrs[] = {
+#else
 static struct bin_attribute *ert_ctrl_bin_attrs[] = {
+#endif
 	&cq_attr,
 	NULL,
 };
@@ -803,14 +814,14 @@ static int ert_ctrl_cq_init(struct platform_device *pdev)
 	return 0;
 }
 
-static int ert_ctrl_remove(struct platform_device *pdev)
+static void ert_ctrl_remove(struct platform_device *pdev)
 {
 	struct ert_ctrl	*ec = NULL;
 	void *hdl = NULL;
 
 	ec = platform_get_drvdata(pdev);
 	if (!ec)
-		return -EINVAL;
+		return;
 
 	if (ec->ec_connected)
 		ert_ctrl_disconnect(pdev);
@@ -822,7 +833,7 @@ static int ert_ctrl_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+
 }
 
 static int ert_ctrl_probe(struct platform_device *pdev)

@@ -79,7 +79,7 @@ static struct xocl_pcie_firewall_funcs firewall_ops = {
 	.unblock = firewall_unblock,
 };
 
-static int firewall_remove(struct platform_device *pdev)
+static void firewall_remove(struct platform_device *pdev)
 {
 	struct firewall *firewall;
 	void *hdl;
@@ -87,7 +87,7 @@ static int firewall_remove(struct platform_device *pdev)
 	firewall = platform_get_drvdata(pdev);
 	if (!firewall) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 	xocl_drvinst_release(firewall, &hdl);
 
@@ -98,7 +98,7 @@ static int firewall_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	xocl_drvinst_free(hdl);
 
-	return 0;
+	return;
 }
 
 static int firewall_probe(struct platform_device *pdev)

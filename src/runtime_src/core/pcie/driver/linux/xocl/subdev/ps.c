@@ -345,13 +345,13 @@ static int ps_sysfs_create(struct xocl_ps *ps)
 	return 0;
 }
 
-static int ps_remove(struct platform_device *pdev)
+static void ps_remove(struct platform_device *pdev)
 {
 	struct xocl_ps *ps;
 
 	ps = platform_get_drvdata(pdev);
 	if (!ps)
-		return -EINVAL;
+		return;
 
 	ps_sysfs_destroy(ps);
 	if (ps->base_addr)
@@ -362,7 +362,7 @@ static int ps_remove(struct platform_device *pdev)
 
 	mutex_destroy(&ps->ps_lock);
 
-	return 0;
+	return;
 };
 
 struct xocl_drv_private ps_priv = {

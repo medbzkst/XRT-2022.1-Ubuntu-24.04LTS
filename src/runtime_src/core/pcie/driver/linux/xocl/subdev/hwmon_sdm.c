@@ -746,14 +746,14 @@ hwmon_reg_failed:
 	return err;
 }
 
-static int hwmon_sdm_remove(struct platform_device *pdev)
+static void hwmon_sdm_remove(struct platform_device *pdev)
 {
 	struct xocl_hwmon_sdm *sdm;
 
 	sdm = platform_get_drvdata(pdev);
 	if (!sdm) {
 		xocl_err(&pdev->dev, "driver data is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	if (sdm->sysfs_created)
@@ -762,7 +762,7 @@ static int hwmon_sdm_remove(struct platform_device *pdev)
 	mutex_destroy(&sdm->sdm_lock);
 	platform_set_drvdata(pdev, NULL);
 
-	return 0;
+
 }
 
 static ssize_t
